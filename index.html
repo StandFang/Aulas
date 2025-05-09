@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Aulas</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#00FF9C">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body {
+            height: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #121212;
+            color: #eee;
+            overflow-x: auto;
+        }
+        .container {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 255, 150, 0.3);
+            width: 95%;
+            max-width: 600px;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #00FF9C;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background: #00FF9C;
+            color: #000;
+            border-radius: 5px;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        input, select, button {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        input, select {
+            background: #2c2c2c;
+            color: #eee;
+            border: 1px solid #555;
+        }
+        .button {
+            background: #00FF9C;
+            color: #000;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .button:hover { background: #00cc7a; }
+        .delete-btn { background: #ff5e5e; }
+        .delete-btn:hover { background: #e04848; }
+        .popup-background {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            animation: fadeIn 0.3s ease;
+        }
+        .popup {
+            background: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            color: #eee;
+            width: 80%;
+            max-width: 300px;
+            box-shadow: 0 0 10px rgba(0, 255, 150, 0.5);
+        }
+        .popup-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .popup-buttons button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .confirm { background: #00FF9C; color: #000; }
+        .cancel { background: #ff5e5e; color: #000; }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+                border-radius: 8px;
+            }
+            h1 {
+                font-size: 1.3rem;
+                margin-bottom: 15px;
+            }
+            table {
+                font-size: 0.8rem;
+            }
+            th, td {
+                padding: 6px;
+            }
+            .actions input, .actions select, .actions button {
+                padding: 6px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Estilos específicos para a barra de pesquisa */
+        #inputBusca {
+            width: calc(100% - 20px);
+            margin-bottom: 10px;
+            display: block;
+        }
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        @media (min-width: 601px) {
+            .actions {
+                flex-direction: row;
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+            #inputBusca {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            #inputNome, #inputPreco, #selectAluno, #inputAula {
+                flex: 1;
+                margin-right: 0;
+                margin-bottom: 10px;
+                width: calc(100% - 20px);
+            }
+            .buttonAdicionarAluno {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+
+        /* Estilos para tornar a tabela responsiva */
+        .table-container {
+            overflow-x: auto; /* Adiciona barra de rolagem horizontal em telas pequenas */
+            margin-bottom: 20px;
+        }
+        table {
+            min-width: 100%; /* Garante que a tabela tenha pelo menos 100% da largura do container */
+        }
+        @media (max-width: 600px) {
+           table {
+                font-size: 0.7rem; /* Reduz a fonte ainda mais em telas muito pequenas */
+            }
+            th, td{
+               padding: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Controle de Aulas</h1>
+        <input type="text" id="inputBusca" placeholder="Buscar aluno pelo nome..." oninput="filtrarAlunos()">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aluno</th>
+                        <th>Valor Total (R$)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTable"></tbody>
+            </table>
+        </div>
+        <div class="empty-message" id="emptyMessage" style="display: none;">Nenhum aluno cadastrado.</div>
+        <div class="actions">
+            <input type="text" id="inputNome" placeholder="Nome do Aluno">
+            <input type="number" id="inputPreco" min="0" step="0.01" placeholder="Preço da Aula (R$)">
+            <button class="button buttonAdicionarAluno" onclick="adicionarAluno()">Adicionar Aluno</button>
+
+            <select id="selectAluno"></select>
+            <input type="number" id="inputAula" min="0.5" step="0.5" placeholder="Quantidade de Aulas">
+            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                <button class="button" onclick="confirmarAdicionarAulas()">Adicionar Aulas</button>
+                <button class="button delete-btn" onclick="confirmarReset()">Resetar Aulas</button>
+                <button class="button" onclick="mostrarDetalhes()">Detalhes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="popupArea"></div>
+
+    <script>
+        let alunos = [];
+
+        function salvarDados() {
+            localStorage.setItem("alunosData", JSON.stringify(alunos));
+        }
+
+        function carregarDados() {
+            const dadosSalvos = localStorage.getItem("alunosData");
+            if (dadosSalvos) alunos = JSON.parse(dadosSalvos);
+        }
+
+        function renderTable(filtro = "") {
+            const table = document.getElementById("studentTable");
+            const mensagemVazia = document.getElementById("emptyMessage");
+            table.innerHTML = "";
+
+            const alunosFiltrados = alunos.filter(aluno => aluno.nome.toLowerCase().includes(filtro.toLowerCase()));
+            alunosFiltrados.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            if (alunosFiltrados.length === 0) {
+                mensagemVazia.style.display = "block";
+            } else {
+                mensagemVazia.style.display = "none";
+                alunosFiltrados.forEach((aluno, index) => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${aluno.nome}</td>
+                        <td>R$ ${aluno.valorTotal.toFixed(2)}</td>
+                        <td><button class="delete-btn" onclick="confirmarDelecao(${index})">Excluir</button></td>
+                    `;
+                    table.appendChild(row);
+                });
+            }
+            renderSelectOptions();
+        }
+
+        function renderSelectOptions() {
+            const select = document.getElementById("selectAluno");
+            select.innerHTML = "";
+            alunos.sort((a, b) => a.nome.localeCompare(b.nome));
+            alunos.forEach((aluno, index) => {
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = aluno.nome;
+                select.appendChild(option);
+            });
+        }
+
+        function adicionarAluno() {
+            const nome = document.getElementById("inputNome").value.trim();
+            const preco = parseFloat(document.getElementById("inputPreco").value);
+            if (nome && !isNaN(preco) && preco > 0) {
+                alunos.push({ nome: nome, precoAula: preco, aulas: 0, valorTotal: 0, detalhes: [] });
+                salvarDados();
+                renderTable();
+                document.getElementById("inputNome").value = "";
+                document.getElementById("inputPreco").value = "";
+            } else {
+                mostrarPopup("Preencha o nome e o preço corretamente.");
+            }
+        }
+
+        function confirmarAdicionarAulas() {
+            const index = document.getElementById("selectAluno").value;
+            const quantidade = parseFloat(document.getElementById("inputAula").value);
+            if (!isNaN(quantidade) && quantidade > 0) {
+                mostrarPopup(`Confirma adicionar ${quantidade} aula(s) para ${alunos[index].nome}?`, () => {
+                    adicionarAulas(index, quantidade);
+                });
+            } else {
+                mostrarPopup("Por favor, insira uma quantidade válida de aulas.");
+            }
+        }
+
+        function adicionarAulas(index, quantidade) {
+            alunos[index].aulas += quantidade;
+            alunos[index].valorTotal = alunos[index].aulas * alunos[index].precoAula;
+            const dataAtual = new Date();
+            const diaSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][dataAtual.getDay()];
+            const dataFormatada = dataAtual.toLocaleDateString('pt-BR');
+            alunos[index].detalhes.push({ data: dataFormatada, diaSemana: diaSemana, quantidade: quantidade });
+            salvarDados();
+            renderTable();
+            document.getElementById("inputAula").value = "";
+        }
+
+        function confirmarReset() {
+            const index = document.getElementById("selectAluno").value;
+            mostrarPopup(`Tem certeza que deseja resetar as aulas de ${alunos[index].nome}?`, () => {
+                alunos[index].aulas = 0;
+                alunos[index].valorTotal = 0;
+                alunos[index].detalhes = [];
+                salvarDados();
+                renderTable();
+            });
+        }
+
+        function confirmarDelecao(index) {
+            mostrarPopup("Deseja excluir este aluno?", () => {
+                alunos.splice(index, 1);
+                salvarDados();
+                renderTable();
+            });
+        }
+
+        function mostrarDetalhes() {
+            const index = document.getElementById("selectAluno").value;
+            const aluno = alunos[index];
+            if (aluno.detalhes.length === 0) {
+                mostrarPopup("Nenhuma aula lançada para este aluno.");
+                return;
+            }
+            let detalhesHTML = "";
+            aluno.detalhes.forEach(detalhe => {
+                detalhesHTML += `${detalhe.data} (${detalhe.diaSemana}): ${detalhe.quantidade} aula(s)<br>`;
+            });
+            mostrarPopup(`<strong>Detalhes de ${aluno.nome}:</strong><br><br>${detalhesHTML}`);
+        }
+
+        function mostrarPopup(mensagem, callback) {
+            const popupArea = document.getElementById("popupArea");
+            popupArea.innerHTML = `
+                <div class="popup-background">
+                    <div class="popup">
+                        <p>${mensagem}</p>
+                        <div class="popup-buttons">
+                            ${callback ? `
+                                <button class="confirm" onclick="executarConfirmacao()">Confirmar</button>
+                                <button class="cancel" onclick="fecharPopup()">Cancelar</button>
+                            ` : `
+                                <button class="confirm" onclick="fecharPopup()">OK</button>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+            if (callback) {
+                window.executarConfirmacao = function() {
+                    callback();
+                    fecharPopup();
+                }
+            }
+        }
+
+        function fecharPopup() {
+            document.getElementById("popupArea").innerHTML = "";
+        }
+
+        function filtrarAlunos() {
+            const filtro = document.getElementById("inputBusca").value;
+            renderTable(filtro);
+        }
+
+        carregarDados();
+        renderTable();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('Service Worker registrado com sucesso:', registration);
+            }).catch(error => {
+                console.log('Erro ao registrar o Service Worker:', error);
+            });
+        }
+    </script>
+</body>
+</html>
